@@ -1,9 +1,10 @@
 # Generierte Rechnungen
 rechnungen/
 
-# Rechnungsnummern-Zähler (wird zur Laufzeit erzeugt)
+# Laufzeit-Daten (werden automatisch erzeugt)
 rechnungsnummern.json
 rechnungsnummern.txt
+bereits_abgerechnet.json
 
 # Passwörter / lokale Konfiguration
 .env

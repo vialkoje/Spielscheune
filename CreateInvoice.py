@@ -23,6 +23,7 @@ VORLAGE        = BASE_DIR / "vorlage.docx"
 CSV_DATEI      = BASE_DIR / "abrechnungsdaten.csv"
 AUSGABE_ORDNER = BASE_DIR / "rechnungen"
 NUMMER_DATEI   = BASE_DIR / "rechnungsnummern.json"
+DUPLIKAT_DATEI = BASE_DIR / "bereits_abgerechnet.json"
 LIBREOFFICE    = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
 
 # ─── E-Mail-Konfiguration ─────────────────────────────────────────────────────
@@ -33,6 +34,27 @@ SMTP_PASS   = os.environ.get("SMTP_PASS", "")   # Passwort aus .env laden
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
+
+
+# ─── Duplikat-Schutz ─────────────────────────────────────────────────────────
+
+def _lade_abgerechnet() -> dict:
+    if DUPLIKAT_DATEI.exists():
+        return json.loads(DUPLIKAT_DATEI.read_text(encoding="utf-8"))
+    return {}
+
+def _speichere_abgerechnet(daten: dict) -> None:
+    DUPLIKAT_DATEI.write_text(json.dumps(daten, indent=2, ensure_ascii=False), encoding="utf-8")
+
+def bereits_abgerechnet(kundennummer: str, lzr: str) -> str | None:
+    """Gibt die frühere Rechnungsnummer zurück, wenn dieser Eintrag schon existiert."""
+    key = f"{kundennummer}_{lzr}"
+    return _lade_abgerechnet().get(key)
+
+def markiere_als_abgerechnet(kundennummer: str, lzr: str, nummer: str) -> None:
+    daten = _lade_abgerechnet()
+    daten[f"{kundennummer}_{lzr}"] = nummer
+    _speichere_abgerechnet(daten)
 
 
 # ─── Rechnungsnummer ──────────────────────────────────────────────────────────
@@ -202,10 +224,17 @@ def main() -> None:
     fehler = 0
 
     for _, row in df.iterrows():
+        kundennummer = str(row["Kundennummer"])
+        lzr          = str(row["LZR"])
+        vorherige    = bereits_abgerechnet(kundennummer, lzr)
+        if vorherige:
+            log.warning("  ⚠  %-20s bereits abgerechnet (%s) – übersprungen", row["Name"], vorherige)
+            continue
         nummer = naechste_nummer(datum)
         try:
             pdf_pfad = erstelle_rechnung(row, nummer, datum)
             sende_rechnung(row["Rechnungsemail"], pdf_pfad, nummer, row["Kind_Vorname"])
+            markiere_als_abgerechnet(kundennummer, lzr, nummer)
         except Exception as exc:
             log.error("  ✗  %s: %s", row.get("Name", "?"), exc)
             fehler += 1
