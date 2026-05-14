@@ -6,8 +6,11 @@ Erstellt PDF-Rechnungen aus abrechnungsdaten.csv und vorlage.docx.
 
 import json
 import logging
+import os
+import smtplib
 import subprocess
 import sys
+from email.message import EmailMessage
 from datetime import datetime
 from pathlib import Path
 
@@ -21,6 +24,12 @@ CSV_DATEI      = BASE_DIR / "abrechnungsdaten.csv"
 AUSGABE_ORDNER = BASE_DIR / "rechnungen"
 NUMMER_DATEI   = BASE_DIR / "rechnungsnummern.json"
 LIBREOFFICE    = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+
+# ─── E-Mail-Konfiguration ─────────────────────────────────────────────────────
+SMTP_SERVER = "smtp.strato.de"
+SMTP_PORT   = 587
+SMTP_USER   = "sonnenstunden@vialkowitsch.de"
+SMTP_PASS   = os.environ.get("SMTP_PASS", "")   # Passwort aus .env laden
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -153,31 +162,31 @@ def erstelle_rechnung(row: pd.Series, nummer: str, datum: datetime) -> Path:
     return pdf_pfad
 
 
-# ─── Optional: E-Mail-Versand ─────────────────────────────────────────────────
-# Auskommentiert – SMTP_PASS setzen und Aufruf in main() einkommentieren.
-#
-# import smtplib
-# from email.message import EmailMessage
-#
-# SMTP_SERVER = "smtp.strato.de"
-# SMTP_PORT   = 587
-# SMTP_USER   = "sonnenstunden@vialkowitsch.de"
-# SMTP_PASS   = ""   # <-- hier eintragen oder aus Umgebungsvariable lesen
-#
-# def sende_rechnung(empfaenger: str, pdf_pfad: Path, nummer: str) -> None:
-#     msg = EmailMessage()
-#     msg["Subject"] = f"Rechnung {nummer} – Spielscheune Sonnenstunden"
-#     msg["From"]    = SMTP_USER
-#     msg["To"]      = empfaenger
-#     msg.set_content("Liebe Eltern,\n\nim Anhang erhalten Sie Ihre Rechnung.\n\nHerzliche Grüße\nClaudia Vialkowitsch")
-#     with open(pdf_pfad, "rb") as f:
-#         msg.add_attachment(f.read(), maintype="application", subtype="pdf",
-#                            filename=pdf_pfad.name)
-#     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-#         server.starttls()
-#         server.login(SMTP_USER, SMTP_PASS)
-#         server.send_message(msg)
-#     log.info("  ✉  Gesendet an %s", empfaenger)
+# ─── E-Mail-Versand ───────────────────────────────────────────────────────────
+
+def sende_rechnung(empfaenger: str, pdf_pfad: Path, nummer: str, name: str) -> None:
+    if not SMTP_PASS:
+        raise RuntimeError("SMTP_PASS nicht gesetzt – bitte in .env eintragen")
+    msg = EmailMessage()
+    msg["Subject"] = f"Rechnung {nummer} – Spielscheune Sonnenstunden"
+    msg["From"]    = SMTP_USER
+    msg["To"]      = empfaenger
+    msg.set_content(
+        f"Liebe Eltern von {name},\n\n"
+        "im Anhang erhalten Sie Ihre aktuelle Rechnung.\n\n"
+        "Bei Fragen stehe ich gerne zur Verfügung.\n\n"
+        "Herzliche Grüße\n"
+        "Claudia Vialkowitsch\n"
+        "Spielscheune Sonnenstunden"
+    )
+    with open(pdf_pfad, "rb") as f:
+        msg.add_attachment(f.read(), maintype="application", subtype="pdf",
+                           filename=pdf_pfad.name)
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
+    log.info("  ✉  Gesendet an %s", empfaenger)
 
 
 # ─── Hauptprogramm ────────────────────────────────────────────────────────────
@@ -196,7 +205,7 @@ def main() -> None:
         nummer = naechste_nummer(datum)
         try:
             pdf_pfad = erstelle_rechnung(row, nummer, datum)
-            # sende_rechnung(row["Rechnungsemail"], pdf_pfad, nummer)  # E-Mail aktivieren
+            sende_rechnung(row["Rechnungsemail"], pdf_pfad, nummer, row["Kind_Vorname"])
         except Exception as exc:
             log.error("  ✗  %s: %s", row.get("Name", "?"), exc)
             fehler += 1

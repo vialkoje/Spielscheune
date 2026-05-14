@@ -5,6 +5,9 @@ rechnungen/
 rechnungsnummern.json
 rechnungsnummern.txt
 
+# Passwörter / lokale Konfiguration
+.env
+
 # Python
 venv/
 __pycache__/
