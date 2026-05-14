@@ -1,0 +1,16 @@
+# Generierte Rechnungen
+rechnungen/
+
+# Rechnungsnummern-Zähler (wird zur Laufzeit erzeugt)
+rechnungsnummern.json
+rechnungsnummern.txt
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# macOS
+.DS_Store
