@@ -1,0 +1,27 @@
+# Generierte Rechnungen
+rechnungen/
+
+# Laufzeit-Daten (werden automatisch erzeugt)
+rechnungsnummern.json
+rechnungsnummern.txt
+bereits_abgerechnet.json
+abrechnungshistorie.csv
+
+# Alte/temporäre Dateien
+abrechnungsdaten_old.csv
+kunden.csv
+monatsabrechnung.csv
+spielscheune.xlsx
+
+# Passwörter / lokale Konfiguration
+.env
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# macOS
+.DS_Store
