@@ -1,0 +1,4 @@
+Name;Strasse;PLZ;Ort;Kundennummer;Abrechnungsfrequenz;Anzahl_Essen;Preis_pro_Essen;Kind_Vorname;Rechnungsemail;LZR
+Max Muster;Musterweg 1;12345;Ort;K123;monatlich;20;3,5;Elias;jens@vialkowitsch.de;April 2025
+Lisa Beispiel;Beispielgasse 5;54321;Stadt;K124;vierteljährlich;60;3,5;Jonas;jens@vialkowitsch.de;April 2025
+Tom Testkind;Teststraße 7;11223;Beispielstadt;K125;monatlich;18;3,75;Jürgen;jens@vialkowitsch.de;April 2025
